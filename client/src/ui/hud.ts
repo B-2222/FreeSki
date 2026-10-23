@@ -31,6 +31,7 @@ export class Hud {
   private help = el('hud-panel hud-help');
   private debug = el('hud-panel hud-debug hidden');
   private banner = el('hud-banner', '<div class="big"></div><div class="small"></div>');
+  private start = el('hud-start hidden');
   private toastTimer = 0;
   private bannerTimer = 0;
 
@@ -52,7 +53,30 @@ export class Hud {
         ['<kbd>Esc</kbd>/<kbd>P</kbd>', 'pause'],
       ].map(([a, b]) => `<div class="row"><span>${a}</span><span>${b}</span></div>`).join('')}
       <div class="foot">Release all rotation keys to settle for the landing. Let go of grabs before you land.<br/><kbd>H</kbd> hide help · <kbd>F3</kbd> debug</div>`;
-    root.append(this.speed, this.timer, this.state, this.toast, this.ring, this.help, this.debug, this.banner);
+    root.append(this.speed, this.timer, this.state, this.toast, this.ring, this.help, this.debug, this.banner, this.start);
+  }
+
+  /** Start screen: the game needs a click (or key) before it receives keyboard input. */
+  showStart(onStart: (fullscreen: boolean) => void): void {
+    const touchOnly = matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches;
+    this.start.innerHTML = `
+      <div class="logo">FROSTLINE</div>
+      <div class="sub">Test slope · 3 kickers · 2 rails</div>
+      ${touchOnly ? '<p class="warn">This early build needs a keyboard. Touch controls come in a later milestone.</p>' : ''}
+      <div class="buttons">
+        <button type="button" id="start-play">Drop in</button>
+        <button type="button" id="start-full" class="ghost">Drop in fullscreen</button>
+      </div>
+      <p class="hint">Click here or press any key to start, then hold <kbd>W</kbd> to push off.</p>`;
+    this.start.classList.remove('hidden');
+    (this.start.querySelector('#start-play') as HTMLButtonElement).addEventListener('click', (e) => { e.stopPropagation(); onStart(false); });
+    (this.start.querySelector('#start-full') as HTMLButtonElement).addEventListener('click', (e) => { e.stopPropagation(); onStart(true); });
+    this.start.addEventListener('click', () => onStart(false));
+    (this.start.querySelector('#start-play') as HTMLButtonElement).focus();
+  }
+
+  hideStart(): void {
+    this.start.classList.add('hidden');
   }
 
   toggleHelp(): void {

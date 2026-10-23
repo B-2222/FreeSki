@@ -8,6 +8,7 @@
     "dev": "vite --config client/vite.config.ts",
     "build": "tsc --noEmit && vite build --config client/vite.config.ts",
     "preview": "vite preview --config client/vite.config.ts",
+    "build:single": "node scripts/build-artifact.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",

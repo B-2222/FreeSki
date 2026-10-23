@@ -28,6 +28,8 @@ export class Game {
   readonly hud: Hud;
   readonly keys = new Keyboard();
   paused = false;
+  /** Showing the start screen; the sim doesn't run until the player starts. */
+  waiting = true;
   /** Sim ticks run so far (for tests / debugging). */
   ticks = 0;
   /** When set, used instead of the keyboard (automated tests, replays later). */
@@ -50,7 +52,7 @@ export class Game {
   constructor(canvas: HTMLCanvasElement, hudRoot: HTMLElement, readonly world: World) {
     this.renderer = createRenderer(canvas);
     this.rig = createScene();
-    this.cam = new FollowCamera(window.innerWidth / window.innerHeight, canvas);
+    this.cam = new FollowCamera(this.viewSize().w / this.viewSize().h, canvas);
     this.hud = new Hud(hudRoot);
     this.state = createRider(world, 1);
 
@@ -62,12 +64,32 @@ export class Game {
     scene.add(buildCourseMarkers(world));
     scene.add(this.rider.root);
     scene.add(this.snow.points);
-    this.snow.setViewportHeight(window.innerHeight);
+    this.resize();
 
     this.syncPose(true);
     this.keys.onPress((code) => this.onKey(code));
     window.addEventListener('resize', () => this.resize());
+    new ResizeObserver(() => this.resize()).observe(canvas);
+    // Embedded pages only get keyboard input once clicked, so start from a click or a key.
+    this.hud.showStart((fullscreen) => this.begin(fullscreen));
+    canvas.addEventListener('pointerdown', () => this.begin(false));
+  }
+
+  /** Leave the start screen and start the run. */
+  begin(fullscreen: boolean): void {
+    if (!this.waiting) return;
+    this.waiting = false;
+    this.hud.hideStart();
+    window.focus();
+    if (fullscreen) document.documentElement.requestFullscreen?.().catch(() => {});
+    this.last = performance.now();
+    this.acc = 0;
     this.hud.showToast('PUSH OFF', 'clean', 'Hold W to pole out of the start gate', '', 3.5);
+  }
+
+  private viewSize(): { w: number; h: number } {
+    const c = this.renderer.domElement;
+    return { w: c.clientWidth || window.innerWidth, h: c.clientHeight || window.innerHeight };
   }
 
   start(): void {
@@ -80,6 +102,10 @@ export class Game {
   }
 
   private onKey(code: string): void {
+    if (this.waiting) {
+      if (code !== 'Escape' && code !== 'F3') this.begin(false);
+      return;
+    }
     if (code === 'Escape' || code === 'KeyP') {
       this.paused = !this.paused;
       if (this.paused) this.hud.showBanner('PAUSED', 'Esc / P to resume');
@@ -94,7 +120,7 @@ export class Game {
   }
 
   private resize(): void {
-    const w = window.innerWidth, h = window.innerHeight;
+    const { w, h } = this.viewSize();
     this.renderer.setSize(w, h, false);
     this.cam.camera.aspect = w / h;
     this.cam.camera.updateProjectionMatrix();
@@ -157,7 +183,7 @@ export class Game {
     this.last = now;
     if (dt > 0) this.fps += (1 / dt - this.fps) * 0.05;
 
-    if (!this.paused) {
+    if (!this.paused && !this.waiting) {
       this.acc += dt;
       let n = 0;
       while (this.acc >= DT && n < MAX_STEPS_PER_FRAME) {

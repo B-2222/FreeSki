@@ -18,6 +18,7 @@ Other scripts:
 | `npm test` | Unit tests for the shared sim (deterministic math, physics, landing judgment, determinism) |
 | `npm run typecheck` | TypeScript check of client + shared |
 | `npm run build` | Typecheck and production build into `dist/` |
+| `npm run build:single` | Build the whole game into one self-contained page, `dist/frostline.html` (open it in a browser or share it) |
 | `npm run plan` | Course planner: runs a bot down the map and reports lip speeds and where each jump lands |
 | `npm run budget` | Biggest spin that lands clean on each jump (with and without pop / grab) |
 
